@@ -5,6 +5,13 @@
 $(function () {
     var chat = $.connection.chat;
 
+    if (Modernizr.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            chat.latitude = position.coords.latitude;
+            chat.longitude = position.coords.longitude;
+        });
+    }
+
     $.fn.isNearTheEnd = function () {
         return this[0].scrollTop + this.height() >= this[0].scrollHeight;
     };
@@ -75,7 +82,7 @@ $(function () {
         chat.getRecentMessages()
             .done(function (messages) {
                 $.each(messages, function () {
-                    chat.addMessage(this.Id, this.User, this.Content, this.WhenFormatted);
+                    chat.addMessage(this.Id, this.User, this.Content, this.WhenFormatted, true);
                 });
             });
 
@@ -108,15 +115,18 @@ $(function () {
 
     chat.addMessageContent = function (id, content) {
         var nearEnd = $('#messages').isNearTheEnd();
+
         var e = $('#m-' + id).append(content)
                              .resizeMobileContent();
+
+        refreshMessages();
         updateUnread();
         if (nearEnd) {
             scrollTo(e[0]);
         }
     };
 
-    chat.addMessage = function (id, user, message, when) {
+    chat.addMessage = function (id, user, message, when, noScroll) {
         var data = {
             name: user.Name,
             hash: user.Hash,
@@ -133,7 +143,7 @@ $(function () {
 
         updateUnread();
 
-        if (nearEnd) {
+        if (!noScroll && nearEnd) {
             scrollTo(e[0]);
         }
     };
@@ -155,7 +165,7 @@ $(function () {
 
         refreshUsers();
 
-        if (!exists && this.name != user.Name) {
+        if (!exists && this.name !== user.Name) {
             addMessage(user.Name + ' just entered ' + this.room, 'notification');
             e.hide().fadeIn('slow');
         }
